@@ -118,4 +118,43 @@ final class FitsStoreTests: XCTestCase {
         XCTAssertEqual(settings.selectedWorkspaceIds, ["ws-personal"])
         XCTAssertEqual(settings.preferredAgent, "claude")
     }
+
+    func testSaveWritesTaskMarkdownUnderWorkspaceAndProjectPath() throws {
+        let root = try temporaryStoreURL()
+        let store = FitsStore(rootDirectory: root)
+        let workspace = FitsWorkspace(
+            id: "ws-linkana",
+            name: "Linkana",
+            displayName: "Linkana",
+            commitEmail: "team@linkana.com"
+        )
+        let project = FitsProject(
+            id: "project-risk",
+            workspaceId: workspace.id,
+            name: "Risk Scoring"
+        )
+        let task = try FitsTask(
+            id: "task-ofac",
+            title: "Add OFAC sanctions list",
+            description: "Integrate the OFAC SDN list into the scoring pipeline.",
+            workspaceId: workspace.id,
+            projectId: project.id
+        )
+        let board = BoardData(
+            workspaces: [workspace],
+            projects: [project],
+            tasks: [task],
+            draftTask: DraftTask(workspaceId: workspace.id, projectId: project.id)
+        )
+
+        try store.save(board)
+
+        let markdownURL = root
+            .appendingPathComponent("workspaces/linkana/projects/risk-scoring/add-ofac-sanctions-list.md")
+        let markdown = try String(contentsOf: markdownURL, encoding: .utf8)
+        XCTAssertTrue(markdown.contains("# Add OFAC sanctions list"))
+        XCTAssertTrue(markdown.contains("Workspace: Linkana"))
+        XCTAssertTrue(markdown.contains("Project: Risk Scoring"))
+        XCTAssertTrue(markdown.contains("Integrate the OFAC SDN list into the scoring pipeline."))
+    }
 }

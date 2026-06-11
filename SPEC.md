@@ -100,6 +100,16 @@ A task must always have:
 
 Tasks start in the intake/backlog flow and can move through board columns.
 
+Each task must have a stable Markdown representation inside the Fits Board configuration folder. This file is a human-readable live task artifact, not an exported report.
+
+The task Markdown path must follow this pattern:
+
+```text
+~/.fits-board/workspaces/<workspace-name-or-id>/projects/<project-name-or-id>/<task-title-slug-or-id>.md
+```
+
+The Markdown file must be updated whenever Fits Board creates or edits the task fields that belong to the backlog/intake definition. This keeps the task saved as the user writes and gives future agents a durable file to read before planning.
+
 ### Draft Task
 
 The draft task is the autosaved intake form state.
@@ -128,6 +138,21 @@ The current board columns are:
 - Ship it
 
 The agent columns are conceptual placeholders for future orchestration. They should remain visible even before execution is implemented.
+
+### Backlog Column
+
+Backlog is the intake column and the first stage of the production pipeline.
+
+Backlog owns the initial definition of the task:
+
+- workspace
+- project
+- title
+- description
+
+The backlog editor must make description writing comfortable. Opening a task from the board should show a centered task detail dialog with enough space to write and revise the description.
+
+Backlog task edits must update both structured JSON persistence and the task Markdown file under the workspace/project path. The Markdown artifact is the live written task definition that agents can use as input for later spec and planning stages.
 
 ### Coding Agent
 
@@ -168,6 +193,7 @@ Current files:
 - `projects.json`
 - `tasks.json`
 - `draft-task.json`
+- `workspaces/**/projects/**/*.md`
 
 Persistence must remain backward compatible. When a model gains a field, existing JSON files should continue to decode with sensible defaults.
 

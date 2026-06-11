@@ -27,6 +27,8 @@ struct BoardView: View {
                 ProjectFormView()
             case .task:
                 TaskFormView()
+            case .taskDetail:
+                TaskDetailEditorView()
             case .preferences:
                 PreferencesView()
             }
@@ -344,7 +346,7 @@ private struct TaskCardView: View {
 
     var body: some View {
         Button {
-            model.selectedTaskId = task.id
+            model.openTaskEditor(task)
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 7) {

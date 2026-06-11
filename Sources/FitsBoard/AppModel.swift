@@ -7,6 +7,7 @@ final class AppModel: ObservableObject {
         case workspace
         case project
         case task
+        case taskDetail
         case preferences
 
         var id: String {
@@ -14,6 +15,7 @@ final class AppModel: ObservableObject {
             case .workspace: "workspace"
             case .project: "project"
             case .task: "task"
+            case .taskDetail: "taskDetail"
             case .preferences: "preferences"
             }
         }
@@ -22,6 +24,7 @@ final class AppModel: ObservableObject {
     @Published var board: BoardData
     @Published var detectedTools: [DetectedTool]
     @Published var selectedTaskId: String?
+    @Published var editingTaskId: String?
     @Published var activeSheet: Sheet?
     @Published var terminalLines: [String]
     @Published var errorMessage: String?
@@ -60,6 +63,11 @@ final class AppModel: ObservableObject {
     var selectedTask: FitsTask? {
         guard let selectedTaskId else { return nil }
         return board.tasks.first { $0.id == selectedTaskId }
+    }
+
+    var editingTask: FitsTask? {
+        guard let editingTaskId else { return nil }
+        return board.tasks.first { $0.id == editingTaskId }
     }
 
     func filteredTasks(for column: BoardColumn) -> [FitsTask] {
@@ -211,6 +219,28 @@ final class AppModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func openTaskEditor(_ task: FitsTask) {
+        selectedTaskId = task.id
+        editingTaskId = task.id
+        activeSheet = .taskDetail
+    }
+
+    func updateTask(id: String, title: String, description: String, workspaceId: String, projectId: String) {
+        guard let index = board.tasks.firstIndex(where: { $0.id == id }) else { return }
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTitle.isEmpty, !cleanDescription.isEmpty else { return }
+        guard board.workspaces.contains(where: { $0.id == workspaceId }) else { return }
+        guard board.projects.contains(where: { $0.id == projectId && $0.workspaceId == workspaceId }) else { return }
+
+        board.tasks[index].title = cleanTitle
+        board.tasks[index].description = cleanDescription
+        board.tasks[index].workspaceId = workspaceId
+        board.tasks[index].projectId = projectId
+        board.tasks[index].updatedAt = Date()
+        persist()
     }
 
     func moveTask(_ task: FitsTask, to column: BoardColumn) {

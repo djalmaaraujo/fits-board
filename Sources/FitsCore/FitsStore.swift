@@ -95,6 +95,7 @@ public struct FitsStore: Sendable {
         try write(data.projects, to: "projects.json")
         try write(data.tasks, to: "tasks.json")
         try write(data.draftTask, to: "draft-task.json")
+        try writeTaskMarkdownFiles(data)
     }
 
     private func ensureRootDirectory() throws {
@@ -127,6 +128,64 @@ public struct FitsStore: Sendable {
         } else {
             try FileManager.default.moveItem(at: temporary, to: destination)
         }
+    }
+
+    private func writeTaskMarkdownFiles(_ data: BoardData) throws {
+        for task in data.tasks {
+            guard let workspace = data.workspaces.first(where: { $0.id == task.workspaceId }),
+                  let project = data.projects.first(where: { $0.id == task.projectId }) else {
+                continue
+            }
+
+            let directory = rootDirectory
+                .appendingPathComponent("workspaces", isDirectory: true)
+                .appendingPathComponent(Self.slug(workspace.name, fallback: workspace.id), isDirectory: true)
+                .appendingPathComponent("projects", isDirectory: true)
+                .appendingPathComponent(Self.slug(project.name, fallback: project.id), isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+            let fileURL = directory.appendingPathComponent("\(Self.slug(task.title, fallback: task.id)).md")
+            let markdown = Self.markdown(for: task, workspace: workspace, project: project)
+            try Data(markdown.utf8).write(to: fileURL, options: [.atomic])
+        }
+    }
+
+    private static func markdown(for task: FitsTask, workspace: FitsWorkspace, project: FitsProject) -> String {
+        """
+        # \(task.title)
+
+        Workspace: \(workspace.displayName)
+        Project: \(project.name)
+        Column: \(task.columnId)
+        Task ID: \(task.id)
+
+        ## Description
+
+        \(task.description)
+        """
+    }
+
+    private static func slug(_ value: String, fallback: String) -> String {
+        let lowercased = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let allowed = CharacterSet.alphanumerics
+        var result = ""
+        var previousWasSeparator = false
+
+        for scalar in lowercased.unicodeScalars {
+            if allowed.contains(scalar) {
+                result.unicodeScalars.append(scalar)
+                previousWasSeparator = false
+            } else if !previousWasSeparator {
+                result.append("-")
+                previousWasSeparator = true
+            }
+        }
+
+        let trimmed = result.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        if trimmed.isEmpty {
+            return fallback
+        }
+        return trimmed
     }
 
     private static func makeEncoder() -> JSONEncoder {

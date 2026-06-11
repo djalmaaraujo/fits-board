@@ -245,6 +245,8 @@ struct ProjectFormView: View {
                 } label: {
                     MenuField(label: "Workspace", value: model.workspaceName(workspaceId))
                 }
+                .menuStyle(.borderlessButton)
+                .buttonStyle(.plain)
 
                 LabeledField("Project Name", text: $name, placeholder: "Customer Portal")
 
@@ -348,6 +350,8 @@ struct TaskFormView: View {
                 } label: {
                     MenuField(label: "Workspace", value: model.workspaceName(workspaceId))
                 }
+                .menuStyle(.borderlessButton)
+                .buttonStyle(.plain)
 
                 Menu {
                     ForEach(model.projects(for: workspaceId)) { project in
@@ -358,6 +362,8 @@ struct TaskFormView: View {
                 } label: {
                     MenuField(label: "Project", value: model.projectName(projectId))
                 }
+                .menuStyle(.borderlessButton)
+                .buttonStyle(.plain)
 
                 LabeledField("Title", text: $title, placeholder: "Draft the migration spec")
                 LabeledField("Description", text: $description, placeholder: "What needs to be done?", axis: .vertical)
@@ -393,6 +399,117 @@ struct TaskFormView: View {
         !projectId.isEmpty &&
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
+struct TaskDetailEditorView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var workspaceId = ""
+    @State private var projectId = ""
+    @State private var title = ""
+    @State private var description = ""
+    @State private var didLoadTask = false
+
+    var body: some View {
+        ModalSurface(title: "Task detail", subtitle: "Backlog definition") {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Menu {
+                        ForEach(model.board.workspaces) { workspace in
+                            Button(workspace.displayName) {
+                                workspaceId = workspace.id
+                                projectId = model.projects(for: workspace.id).first?.id ?? ""
+                                autosave()
+                            }
+                        }
+                    } label: {
+                        MenuField(label: "Workspace", value: model.workspaceName(workspaceId))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .buttonStyle(.plain)
+
+                    Menu {
+                        ForEach(model.projects(for: workspaceId)) { project in
+                            Button(project.name) {
+                                projectId = project.id
+                                autosave()
+                            }
+                        }
+                    } label: {
+                        MenuField(label: "Project", value: model.projectName(projectId))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .buttonStyle(.plain)
+                }
+
+                LabeledField("Title", text: $title, placeholder: "Add OFAC sanctions list")
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Description")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.fitsMuted)
+                        .textCase(.uppercase)
+                    TextEditor(text: $description)
+                        .scrollContentBackground(.hidden)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.fitsText)
+                        .padding(10)
+                        .frame(minHeight: 300)
+                        .background(Color.fitsCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
+                }
+            }
+        } footer: {
+            Button("Done") {
+                autosave()
+                model.editingTaskId = nil
+                dismiss()
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.fitsMuted)
+        }
+        .frame(width: 760)
+        .onAppear(perform: loadTask)
+        .onChange(of: model.editingTaskId) { _, _ in
+            loadTask()
+        }
+        .onChange(of: title) { _, _ in
+            autosave()
+        }
+        .onChange(of: description) { _, _ in
+            autosave()
+        }
+        .onDisappear {
+            model.editingTaskId = nil
+        }
+    }
+
+    private func loadTask() {
+        guard let task = model.editingTask else {
+            didLoadTask = false
+            return
+        }
+        didLoadTask = false
+        workspaceId = task.workspaceId
+        projectId = task.projectId
+        title = task.title
+        description = task.description
+        Task { @MainActor in
+            didLoadTask = true
+        }
+    }
+
+    private func autosave() {
+        guard didLoadTask, let taskId = model.editingTaskId else { return }
+        model.updateTask(
+            id: taskId,
+            title: title,
+            description: description,
+            workspaceId: workspaceId,
+            projectId: projectId
+        )
     }
 }
 
@@ -600,16 +717,11 @@ private struct MenuField: View {
     let value: String
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(label)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.fitsMuted)
-                    .textCase(.uppercase)
-                Text(value.isEmpty ? "None" : value)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.fitsText)
-            }
+        HStack(spacing: 8) {
+            Text("\(label.uppercased())  \(value.isEmpty ? "None" : value)")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.fitsText)
+                .lineLimit(1)
             Spacer()
             Image(systemName: "chevron.down")
                 .font(.system(size: 10, weight: .bold))
