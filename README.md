@@ -99,7 +99,8 @@ Package the app:
 - `Tests/FitsCoreTests/`: unit tests for core behavior.
 - `cmd/fits-agent-host/`: Go helper for local agent/terminal integration.
 - `scripts/package_app.sh`: creates `.build/Fits.app`.
-- `docs/superpowers/`: design and implementation planning notes.
+- `SPEC.md`: the living product specification.
+- `AGENTS.md`: instructions for coding agents working in this repo.
 
 ## Notes
 

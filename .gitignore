@@ -4,3 +4,4 @@ DerivedData/
 *.xcodeproj
 *.xcworkspace
 cmd/fits-agent-host/fits-agent-host
+docs/superpowers/
