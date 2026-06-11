@@ -304,6 +304,23 @@ private struct DraftComposerView: View {
                 }
             }
 
+            CompactMenu(
+                label: "Planning",
+                value: model.board.draftTask.planningType.displayName
+            ) {
+                ForEach(TaskPlanningType.allCases) { planningType in
+                    Button(planningType.displayName) {
+                        model.updateDraft(planningType: planningType)
+                    }
+                }
+            }
+
+            Text(model.board.draftTask.planningType.description)
+                .font(.system(size: 9.5, weight: .medium))
+                .foregroundStyle(Color.fitsMuted.opacity(0.84))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+
             TextField("Task title", text: Binding(
                 get: { model.board.draftTask.title },
                 set: { model.updateDraft(title: $0) }

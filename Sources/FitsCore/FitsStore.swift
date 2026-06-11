@@ -156,6 +156,7 @@ public struct FitsStore: Sendable {
 
         Workspace: \(workspace.displayName)
         Project: \(project.name)
+        Planning Type: \(task.planningType.displayName)
         Column: \(task.columnId)
         Task ID: \(task.id)
 

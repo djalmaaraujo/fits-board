@@ -323,6 +323,7 @@ struct TaskFormView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var workspaceId = ""
     @State private var projectId = ""
+    @State private var planningType: TaskPlanningType = .fast
     @State private var title = ""
     @State private var description = ""
 
@@ -354,6 +355,8 @@ struct TaskFormView: View {
                 .menuStyle(.borderlessButton)
                 .buttonStyle(.plain)
 
+                PlanningTypeField(planningType: $planningType)
+
                 LabeledField("Title", text: $title, placeholder: "Draft the migration spec")
                 LabeledField("Description", text: $description, placeholder: "What needs to be done?", axis: .vertical)
             }
@@ -364,7 +367,8 @@ struct TaskFormView: View {
                     title: title,
                     description: description,
                     workspaceId: workspaceId,
-                    projectId: projectId
+                    projectId: projectId,
+                    planningType: planningType
                 )
                 dismiss()
             }
@@ -378,6 +382,7 @@ struct TaskFormView: View {
             projectId = model.board.draftTask.projectId.isEmpty
                 ? (model.projects(for: workspaceId).first?.id ?? "")
                 : model.board.draftTask.projectId
+            planningType = model.board.draftTask.planningType
         }
     }
 
@@ -394,6 +399,7 @@ struct TaskDetailEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var workspaceId = ""
     @State private var projectId = ""
+    @State private var planningType: TaskPlanningType = .fast
     @State private var title = ""
     @State private var description = ""
     @State private var didLoadTask = false
@@ -434,6 +440,14 @@ struct TaskDetailEditorView: View {
                         ReadOnlyMetaField(label: "Project", value: model.projectName(projectId))
                     }
                 }
+
+                PlanningTypeField(planningType: Binding(
+                    get: { planningType },
+                    set: { newValue in
+                        planningType = newValue
+                        autosave()
+                    }
+                ))
 
                 LabeledField("Title", text: $title, placeholder: "Add OFAC sanctions list")
 
@@ -484,6 +498,7 @@ struct TaskDetailEditorView: View {
         didLoadTask = false
         workspaceId = task.workspaceId
         projectId = task.projectId
+        planningType = task.planningType
         title = task.title
         description = task.description
         Task { @MainActor in
@@ -498,7 +513,8 @@ struct TaskDetailEditorView: View {
             title: title,
             description: description,
             workspaceId: workspaceId,
-            projectId: projectId
+            projectId: projectId,
+            planningType: planningType
         )
     }
 
@@ -750,6 +766,31 @@ private struct PickerField<Content: View>: View {
         .background(Color.fitsCard)
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
+    }
+}
+
+private struct PlanningTypeField: View {
+    @Binding var planningType: TaskPlanningType
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            PickerField(label: "Planning", selection: Binding(
+                get: { planningType.id },
+                set: { newValue in
+                    planningType = TaskPlanningType(rawValue: newValue) ?? .fast
+                }
+            )) {
+                ForEach(TaskPlanningType.allCases) { item in
+                    Text(item.displayName).tag(item.id)
+                }
+            }
+
+            Text(planningType.description)
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(Color.fitsMuted.opacity(0.86))
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

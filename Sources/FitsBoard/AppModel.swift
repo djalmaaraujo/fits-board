@@ -121,7 +121,13 @@ final class AppModel: ObservableObject {
         persist()
     }
 
-    func updateDraft(workspaceId: String? = nil, projectId: String? = nil, title: String? = nil, description: String? = nil) {
+    func updateDraft(
+        workspaceId: String? = nil,
+        projectId: String? = nil,
+        planningType: TaskPlanningType? = nil,
+        title: String? = nil,
+        description: String? = nil
+    ) {
         if let workspaceId {
             board.draftTask.workspaceId = workspaceId
             if !projects(for: workspaceId).contains(where: { $0.id == board.draftTask.projectId }) {
@@ -130,6 +136,9 @@ final class AppModel: ObservableObject {
         }
         if let projectId {
             board.draftTask.projectId = projectId
+        }
+        if let planningType {
+            board.draftTask.planningType = planningType
         }
         if let title {
             board.draftTask.title = title
@@ -205,13 +214,20 @@ final class AppModel: ObservableObject {
         persist()
     }
 
-    func addTask(title: String, description: String, workspaceId: String, projectId: String) {
+    func addTask(
+        title: String,
+        description: String,
+        workspaceId: String,
+        projectId: String,
+        planningType: TaskPlanningType = .fast
+    ) {
         do {
             let task = try FitsTask(
                 title: title,
                 description: description,
                 workspaceId: workspaceId,
-                projectId: projectId
+                projectId: projectId,
+                planningType: planningType
             )
             board.tasks.append(task)
             selectedTaskId = task.id
@@ -227,13 +243,21 @@ final class AppModel: ObservableObject {
         activeSheet = .taskDetail
     }
 
-    func updateTask(id: String, title: String, description: String, workspaceId: String, projectId: String) {
+    func updateTask(
+        id: String,
+        title: String,
+        description: String,
+        workspaceId: String,
+        projectId: String,
+        planningType: TaskPlanningType? = nil
+    ) {
         if BoardState.updateTaskDefinition(
             id: id,
             title: title,
             description: description,
             workspaceId: workspaceId,
             projectId: projectId,
+            planningType: planningType,
             in: &board
         ) {
             persist()

@@ -29,12 +29,14 @@ public enum BoardState {
             description: draft.description,
             workspaceId: draft.workspaceId,
             projectId: draft.projectId,
+            planningType: draft.planningType,
             columnId: BoardColumn.intake.id
         )
         board.tasks.append(task)
         board.draftTask = DraftTask(
             workspaceId: draft.workspaceId,
             projectId: draft.projectId,
+            planningType: draft.planningType,
             title: "",
             description: "",
             updatedAt: Date()
@@ -79,6 +81,7 @@ public enum BoardState {
         description: String,
         workspaceId: String,
         projectId: String,
+        planningType: TaskPlanningType? = nil,
         in board: inout BoardData
     ) -> Bool {
         guard let index = board.tasks.firstIndex(where: { $0.id == taskId }) else {
@@ -100,6 +103,9 @@ public enum BoardState {
 
         board.tasks[index].title = cleanTitle
         board.tasks[index].description = cleanDescription
+        if let planningType {
+            board.tasks[index].planningType = planningType
+        }
 
         if isBacklogTask {
             board.tasks[index].workspaceId = workspaceId

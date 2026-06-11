@@ -97,6 +97,7 @@ A task must always have:
 - description
 - workspace
 - project
+- planning type
 
 Tasks start in the intake/backlog flow and can move through board columns.
 
@@ -110,6 +111,20 @@ The task Markdown path must follow this pattern:
 
 The Markdown file must be updated whenever Fits Board creates or edits the task fields that belong to the backlog/intake definition. This keeps the task saved as the user writes and gives future agents a durable file to read before planning.
 
+### Planning Type
+
+Planning type tells Fits Board how much planning ceremony the user wants before agents execute a task.
+
+Current planning types:
+
+- `Fast (auto)`: Fits Board plans for the user and may attempt the task without asking clarifying questions.
+- `LLM Plan Mode`: Fits Board delegates to the regular plan mode of the selected LLM/coding agent.
+- `Superpowers Skill`: Fits Board expects a guided Superpowers planning flow that asks questions and writes plans into the repository.
+
+`Fast (auto)` is the default for new and legacy tasks.
+
+The planning type is part of the task definition. It must be persisted in task JSON, shown in task creation/editing UI, and written into the task Markdown artifact.
+
 ### Draft Task
 
 The draft task is the autosaved intake form state.
@@ -118,6 +133,7 @@ It stores:
 
 - selected workspace
 - selected project
+- planning type
 - title
 - description
 - updated time

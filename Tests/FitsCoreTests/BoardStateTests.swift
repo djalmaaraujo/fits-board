@@ -28,6 +28,7 @@ final class BoardStateTests: XCTestCase {
         board.draftTask = DraftTask(
             workspaceId: "ws-a",
             projectId: "project-a",
+            planningType: .superpowersSkill,
             title: "Write task spec",
             description: "Create the task spec before fan-out"
         )
@@ -36,9 +37,12 @@ final class BoardStateTests: XCTestCase {
 
         XCTAssertEqual(task?.title, "Write task spec")
         XCTAssertEqual(task?.columnId, BoardColumn.intake.id)
+        XCTAssertEqual(task?.planningType, .superpowersSkill)
         XCTAssertEqual(board.tasks.last?.title, "Write task spec")
+        XCTAssertEqual(board.tasks.last?.planningType, .superpowersSkill)
         XCTAssertEqual(board.draftTask.workspaceId, "ws-a")
         XCTAssertEqual(board.draftTask.projectId, "project-a")
+        XCTAssertEqual(board.draftTask.planningType, .superpowersSkill)
         XCTAssertEqual(board.draftTask.title, "")
         XCTAssertEqual(board.draftTask.description, "")
     }
@@ -90,6 +94,7 @@ final class BoardStateTests: XCTestCase {
             description: "Updated description",
             workspaceId: "ws-b",
             projectId: "project-b",
+            planningType: .llmPlanMode,
             in: &board
         )
 
@@ -99,6 +104,7 @@ final class BoardStateTests: XCTestCase {
         XCTAssertEqual(task.description, "Updated description")
         XCTAssertEqual(task.workspaceId, "ws-b")
         XCTAssertEqual(task.projectId, "project-b")
+        XCTAssertEqual(task.planningType, .llmPlanMode)
     }
 
     func testUpdateNonBacklogTaskKeepsWorkspaceAndProject() throws {

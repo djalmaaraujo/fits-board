@@ -138,7 +138,8 @@ final class FitsStoreTests: XCTestCase {
             title: "Add OFAC sanctions list",
             description: "Integrate the OFAC SDN list into the scoring pipeline.",
             workspaceId: workspace.id,
-            projectId: project.id
+            projectId: project.id,
+            planningType: .llmPlanMode
         )
         let board = BoardData(
             workspaces: [workspace],
@@ -155,6 +156,7 @@ final class FitsStoreTests: XCTestCase {
         XCTAssertTrue(markdown.contains("# Add OFAC sanctions list"))
         XCTAssertTrue(markdown.contains("Workspace: Linkana"))
         XCTAssertTrue(markdown.contains("Project: Risk Scoring"))
+        XCTAssertTrue(markdown.contains("Planning Type: LLM Plan Mode"))
         XCTAssertTrue(markdown.contains("Integrate the OFAC SDN list into the scoring pipeline."))
     }
 }
