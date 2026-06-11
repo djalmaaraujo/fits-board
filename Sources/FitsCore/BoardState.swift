@@ -89,12 +89,15 @@ public enum BoardState {
         }
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty, !cleanDescription.isEmpty else {
+        guard !cleanTitle.isEmpty else {
             return false
         }
 
         let isBacklogTask = board.tasks[index].columnId == BoardColumn.intake.id
         if isBacklogTask {
+            guard !cleanDescription.isEmpty else {
+                return false
+            }
             guard board.workspaces.contains(where: { $0.id == workspaceId }),
                   board.projects.contains(where: { $0.id == projectId && $0.workspaceId == workspaceId }) else {
                 return false
@@ -102,14 +105,13 @@ public enum BoardState {
         }
 
         board.tasks[index].title = cleanTitle
-        board.tasks[index].description = cleanDescription
-        if let planningType {
-            board.tasks[index].planningType = planningType
-        }
-
         if isBacklogTask {
+            board.tasks[index].description = cleanDescription
             board.tasks[index].workspaceId = workspaceId
             board.tasks[index].projectId = projectId
+            if let planningType {
+                board.tasks[index].planningType = planningType
+            }
         }
 
         board.tasks[index].updatedAt = Date()

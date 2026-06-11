@@ -107,7 +107,7 @@ final class BoardStateTests: XCTestCase {
         XCTAssertEqual(task.planningType, .llmPlanMode)
     }
 
-    func testUpdateNonBacklogTaskKeepsWorkspaceAndProject() throws {
+    func testUpdateNonBacklogTaskKeepsWorkspaceProjectDescriptionAndPlanningType() throws {
         var board = try sampleBoard()
         let originalUpdatedAt = try XCTUnwrap(board.tasks.first { $0.id == "task-b" }).updatedAt
 
@@ -117,15 +117,17 @@ final class BoardStateTests: XCTestCase {
             description: "Planned task description",
             workspaceId: "ws-a",
             projectId: "project-a",
+            planningType: .superpowersSkill,
             in: &board
         )
 
         XCTAssertTrue(updated)
         let task = try XCTUnwrap(board.tasks.first { $0.id == "task-b" })
         XCTAssertEqual(task.title, "Planned task title")
-        XCTAssertEqual(task.description, "Planned task description")
+        XCTAssertEqual(task.description, "B desc")
         XCTAssertEqual(task.workspaceId, "ws-b")
         XCTAssertEqual(task.projectId, "project-b")
+        XCTAssertEqual(task.planningType, .fast)
         XCTAssertGreaterThan(task.updatedAt, originalUpdatedAt)
     }
 

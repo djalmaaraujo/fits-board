@@ -441,30 +441,45 @@ struct TaskDetailEditorView: View {
                     }
                 }
 
-                PlanningTypeField(planningType: Binding(
-                    get: { planningType },
-                    set: { newValue in
-                        planningType = newValue
-                        autosave()
+                if isBacklogTask {
+                    PlanningTypeField(planningType: Binding(
+                        get: { planningType },
+                        set: { newValue in
+                            planningType = newValue
+                            autosave()
+                        }
+                    ))
+                } else {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ReadOnlyMetaField(label: "Planning", value: planningType.displayName)
+                        Text(planningType.description)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundStyle(Color.fitsMuted.opacity(0.86))
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                ))
+                }
 
                 LabeledField("Title", text: $title, placeholder: "Add OFAC sanctions list")
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Description")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Color.fitsMuted)
-                        .textCase(.uppercase)
-                    TextEditor(text: $description)
-                        .scrollContentBackground(.hidden)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.fitsText)
-                        .padding(10)
-                        .frame(minHeight: 300)
-                        .background(Color.fitsCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
+                if isBacklogTask {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Description")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color.fitsMuted)
+                            .textCase(.uppercase)
+                        TextEditor(text: $description)
+                            .scrollContentBackground(.hidden)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color.fitsText)
+                            .padding(10)
+                            .frame(minHeight: 300)
+                            .background(Color.fitsCard)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
+                    }
+                } else {
+                    ReadOnlyDescriptionField(description: description)
                 }
             }
         } footer: {
@@ -483,7 +498,9 @@ struct TaskDetailEditorView: View {
             autosave()
         }
         .onChange(of: description) { _, _ in
-            autosave()
+            if isBacklogTask {
+                autosave()
+            }
         }
         .onDisappear {
             model.editingTaskId = nil
@@ -813,5 +830,31 @@ private struct ReadOnlyMetaField: View {
         .background(Color.fitsCard.opacity(0.82))
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
+    }
+}
+
+private struct ReadOnlyDescriptionField: View {
+    let description: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("Description")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.fitsMuted)
+                .textCase(.uppercase)
+
+            ScrollView {
+                Text(description)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.fitsText)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .textSelection(.enabled)
+                    .padding(10)
+            }
+            .frame(minHeight: 300)
+            .background(Color.fitsCard.opacity(0.82))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
+        }
     }
 }

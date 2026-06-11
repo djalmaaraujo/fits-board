@@ -125,6 +125,8 @@ Current planning types:
 
 The planning type is part of the task definition. It must be persisted in task JSON, shown in task creation/editing UI, and written into the task Markdown artifact.
 
+Planning type is editable only while a task is in Backlog. Once a task moves to Planning or any later column, the task detail dialog must show planning type as read-only metadata so the chosen production path does not drift after intake.
+
 ### Draft Task
 
 The draft task is the autosaved intake form state.
@@ -163,6 +165,7 @@ Backlog owns the initial definition of the task:
 
 - workspace
 - project
+- planning type
 - title
 - description
 
@@ -170,7 +173,7 @@ The backlog editor must make description writing comfortable. Opening a task fro
 
 Backlog task edits must update both structured JSON persistence and the task Markdown file under the workspace/project path. The Markdown artifact is the live written task definition that agents can use as input for later spec and planning stages.
 
-Workspace and project are editable only while a task is in Backlog. Once the task moves to Planning or any later column, the task detail dialog must show workspace and project as read-only metadata. Title and description remain editable because the live task definition can still be clarified, but ownership and project routing should not drift after the task leaves intake.
+Workspace, project, planning type, and description are editable only while a task is in Backlog. Once the task moves to Planning or any later column, the task detail dialog must show workspace, project, planning type, and description as read-only task definition data. Title remains editable as the concise board label, but the production routing, planning path, and written task definition should not drift after the task leaves intake.
 
 ### Coding Agent
 
