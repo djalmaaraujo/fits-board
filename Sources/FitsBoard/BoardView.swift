@@ -93,7 +93,7 @@ struct BoardView: View {
                 model.activeSheet = .preferences
             }
 
-            PrimaryHeaderButton(title: "New project", systemImage: "plus") {
+            FitsButton(title: "New project", systemImage: "plus", size: .header) {
                 model.activeSheet = .project
             }
         }
@@ -329,7 +329,7 @@ private struct DraftComposerView: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
 
-            PrimaryMiniButton(title: "Create Intake Task", systemImage: "doc.badge.plus") {
+            FitsButton(title: "Create Intake Task", systemImage: "doc.badge.plus", size: .fullWidth) {
                 model.promoteDraft()
             }
         }
@@ -706,25 +706,6 @@ private struct IconSquare: View {
     }
 }
 
-private struct PrimaryHeaderButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(Color.black.opacity(0.88))
-                .padding(.horizontal, 13)
-                .padding(.vertical, 8)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 private struct StatPill: View {
     let value: String
     let label: String
@@ -801,25 +782,6 @@ private struct CompactMenu<Content: View>: View {
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
         }
         .menuStyle(.borderlessButton)
-        .buttonStyle(.plain)
-    }
-}
-
-private struct PrimaryMiniButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color.fitsText)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .background(Color.fitsAccent.opacity(0.9))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-        }
         .buttonStyle(.plain)
     }
 }

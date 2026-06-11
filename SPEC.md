@@ -211,6 +211,8 @@ The app shell must remain:
 - fast to launch,
 - comfortable for dense operational workflows.
 
+Modal and dialog calls to action should use the shared Fits default button style: a white primary button for the main action and an inverted dark secondary button for cancel/close actions. New modal CTAs should reuse the shared button component instead of creating one-off button styling.
+
 External scripts or helper processes are allowed for local agent orchestration and terminal/session bridging.
 
 ## Known Gaps

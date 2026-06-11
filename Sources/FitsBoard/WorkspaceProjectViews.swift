@@ -17,10 +17,8 @@ struct WorkspaceFormView: View {
                 LabeledField("Commit E-mail", text: $commitEmail, placeholder: "you@example.com")
             }
         } footer: {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.fitsMuted)
-            PrimaryActionButton(title: "Save Workspace", systemImage: "checkmark") {
+            FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+            FitsButton(title: "Save Workspace", systemImage: "checkmark") {
                 model.addWorkspace(
                     name: name,
                     displayName: displayName.isEmpty ? name : displayName,
@@ -54,10 +52,8 @@ struct PreferencesView: View {
                 }
             }
         } footer: {
-            Button("Close") { dismiss() }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.fitsMuted)
-            PrimaryActionButton(title: "Save Workspace", systemImage: "checkmark") {
+            FitsButton(title: "Close", systemImage: "xmark", variant: .secondary) { dismiss() }
+            FitsButton(title: "Save Workspace", systemImage: "checkmark") {
                 model.updateWorkspace(
                     id: selectedWorkspaceId,
                     name: name,
@@ -131,19 +127,16 @@ struct PreferencesView: View {
                 }
             }
 
-            Button {
+            FitsButton(
+                title: "Add workspace",
+                systemImage: "plus",
+                variant: .secondary,
+                size: .fullWidth
+            ) {
                 let number = model.board.workspaces.count + 1
                 model.addWorkspace(name: "workspace-\(number)", displayName: "Workspace \(number)", commitEmail: "")
                 selectedWorkspaceId = model.board.workspaces.last?.id ?? selectedWorkspaceId
-            } label: {
-                Label("Add workspace", systemImage: "plus")
-                    .font(.system(size: 12, weight: .bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(Color.fitsElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 7))
             }
-            .buttonStyle(.plain)
         }
         .frame(width: 220)
     }
@@ -254,15 +247,13 @@ struct ProjectFormView: View {
                     HStack {
                         SectionTitle(title: "Repositories", subtitle: "Folders on this Mac")
                         Spacer()
-                        Button(action: chooseRepositoryFolders) {
-                            Label("Add folder", systemImage: "plus")
-                                .font(.system(size: 12, weight: .bold))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(Color.fitsElevated)
-                                .clipShape(RoundedRectangle(cornerRadius: 7))
-                        }
-                        .buttonStyle(.plain)
+                        FitsButton(
+                            title: "Add folder",
+                            systemImage: "plus",
+                            variant: .secondary,
+                            size: .compact,
+                            action: chooseRepositoryFolders
+                        )
                     }
 
                     if repositories.isEmpty {
@@ -277,10 +268,8 @@ struct ProjectFormView: View {
                 }
             }
         } footer: {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.fitsMuted)
-            PrimaryActionButton(title: "Save Project", systemImage: "folder.badge.plus") {
+            FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+            FitsButton(title: "Save Project", systemImage: "folder.badge.plus") {
                 model.addProject(
                     workspaceId: workspaceId,
                     name: name,
@@ -369,10 +358,8 @@ struct TaskFormView: View {
                 LabeledField("Description", text: $description, placeholder: "What needs to be done?", axis: .vertical)
             }
         } footer: {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.fitsMuted)
-            PrimaryActionButton(title: "Save Task", systemImage: "checkmark") {
+            FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+            FitsButton(title: "Save Task", systemImage: "checkmark") {
                 model.addTask(
                     title: title,
                     description: description,
@@ -467,13 +454,11 @@ struct TaskDetailEditorView: View {
                 }
             }
         } footer: {
-            Button("Done") {
+            FitsButton(title: "Done", systemImage: "checkmark") {
                 autosave()
                 model.editingTaskId = nil
                 dismiss()
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color.fitsMuted)
         }
         .frame(width: 760)
         .onAppear(perform: loadTask)
@@ -787,24 +772,5 @@ private struct ReadOnlyMetaField: View {
         .background(Color.fitsCard.opacity(0.82))
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
-    }
-}
-
-private struct PrimaryActionButton: View {
-    let title: String
-    let systemImage: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.black.opacity(0.86))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-        }
-        .buttonStyle(.plain)
     }
 }
