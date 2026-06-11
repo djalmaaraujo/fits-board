@@ -81,6 +81,66 @@ final class BoardStateTests: XCTestCase {
         XCTAssertEqual(board.draftTask.description, "Draft description")
     }
 
+    func testUpdateBacklogTaskCanChangeWorkspaceAndProject() throws {
+        var board = try sampleBoard()
+
+        let updated = BoardState.updateTaskDefinition(
+            id: "task-a",
+            title: "Updated title",
+            description: "Updated description",
+            workspaceId: "ws-b",
+            projectId: "project-b",
+            in: &board
+        )
+
+        XCTAssertTrue(updated)
+        let task = try XCTUnwrap(board.tasks.first { $0.id == "task-a" })
+        XCTAssertEqual(task.title, "Updated title")
+        XCTAssertEqual(task.description, "Updated description")
+        XCTAssertEqual(task.workspaceId, "ws-b")
+        XCTAssertEqual(task.projectId, "project-b")
+    }
+
+    func testUpdateNonBacklogTaskKeepsWorkspaceAndProject() throws {
+        var board = try sampleBoard()
+        let originalUpdatedAt = try XCTUnwrap(board.tasks.first { $0.id == "task-b" }).updatedAt
+
+        let updated = BoardState.updateTaskDefinition(
+            id: "task-b",
+            title: "Planned task title",
+            description: "Planned task description",
+            workspaceId: "ws-a",
+            projectId: "project-a",
+            in: &board
+        )
+
+        XCTAssertTrue(updated)
+        let task = try XCTUnwrap(board.tasks.first { $0.id == "task-b" })
+        XCTAssertEqual(task.title, "Planned task title")
+        XCTAssertEqual(task.description, "Planned task description")
+        XCTAssertEqual(task.workspaceId, "ws-b")
+        XCTAssertEqual(task.projectId, "project-b")
+        XCTAssertGreaterThan(task.updatedAt, originalUpdatedAt)
+    }
+
+    func testUpdateBacklogTaskRejectsInvalidProjectWithoutChangingTask() throws {
+        var board = try sampleBoard()
+        let originalTask = try XCTUnwrap(board.tasks.first { $0.id == "task-a" })
+
+        let updated = BoardState.updateTaskDefinition(
+            id: "task-a",
+            title: "Should not stick",
+            description: "Should not stick",
+            workspaceId: "ws-b",
+            projectId: "project-a",
+            in: &board
+        )
+
+        XCTAssertFalse(updated)
+        let task = try XCTUnwrap(board.tasks.first { $0.id == "task-a" })
+        XCTAssertEqual(task, originalTask)
+    }
+
     private func sampleBoard() throws -> BoardData {
         let workspaceA = FitsWorkspace(id: "ws-a", name: "a", displayName: "A", commitEmail: "a@example.com")
         let workspaceB = FitsWorkspace(id: "ws-b", name: "b", displayName: "B", commitEmail: "b@example.com")
@@ -92,7 +152,7 @@ final class BoardStateTests: XCTestCase {
             projects: [projectA, projectB],
             tasks: [
                 try FitsTask(id: "task-a", title: "A", description: "A desc", workspaceId: "ws-a", projectId: "project-a"),
-                try FitsTask(id: "task-b", title: "B", description: "B desc", workspaceId: "ws-b", projectId: "project-b"),
+                try FitsTask(id: "task-b", title: "B", description: "B desc", workspaceId: "ws-b", projectId: "project-b", columnId: BoardColumn.spec.id),
                 try FitsTask(id: "task-c", title: "C", description: "C desc", workspaceId: "ws-a", projectId: "project-a")
             ]
         )

@@ -412,35 +412,40 @@ struct TaskDetailEditorView: View {
     @State private var didLoadTask = false
 
     var body: some View {
-        ModalSurface(title: "Task detail", subtitle: "Backlog definition") {
+        ModalSurface(title: "Task detail", subtitle: isBacklogTask ? "Backlog definition" : "Task definition") {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
-                    Menu {
-                        ForEach(model.board.workspaces) { workspace in
-                            Button(workspace.displayName) {
-                                workspaceId = workspace.id
-                                projectId = model.projects(for: workspace.id).first?.id ?? ""
+                    if isBacklogTask {
+                        PickerField(label: "Workspace", selection: Binding(
+                            get: { workspaceId },
+                            set: { newValue in
+                                workspaceId = newValue
+                                if !model.projects(for: newValue).contains(where: { $0.id == projectId }) {
+                                    projectId = model.projects(for: newValue).first?.id ?? ""
+                                }
                                 autosave()
                             }
+                        )) {
+                            ForEach(model.board.workspaces) { workspace in
+                                Text(workspace.displayName).tag(workspace.id)
+                            }
                         }
-                    } label: {
-                        MenuField(label: "Workspace", value: model.workspaceName(workspaceId))
-                    }
-                    .menuStyle(.borderlessButton)
-                    .buttonStyle(.plain)
 
-                    Menu {
-                        ForEach(model.projects(for: workspaceId)) { project in
-                            Button(project.name) {
-                                projectId = project.id
+                        PickerField(label: "Project", selection: Binding(
+                            get: { projectId },
+                            set: { newValue in
+                                projectId = newValue
                                 autosave()
                             }
+                        )) {
+                            ForEach(model.projects(for: workspaceId)) { project in
+                                Text(project.name).tag(project.id)
+                            }
                         }
-                    } label: {
-                        MenuField(label: "Project", value: model.projectName(projectId))
+                    } else {
+                        ReadOnlyMetaField(label: "Workspace", value: model.workspaceName(workspaceId))
+                        ReadOnlyMetaField(label: "Project", value: model.projectName(projectId))
                     }
-                    .menuStyle(.borderlessButton)
-                    .buttonStyle(.plain)
                 }
 
                 LabeledField("Title", text: $title, placeholder: "Add OFAC sanctions list")
@@ -510,6 +515,10 @@ struct TaskDetailEditorView: View {
             workspaceId: workspaceId,
             projectId: projectId
         )
+    }
+
+    private var isBacklogTask: Bool {
+        model.editingTask?.columnId == BoardColumn.intake.id
     }
 }
 
@@ -729,6 +738,53 @@ private struct MenuField: View {
         }
         .padding(10)
         .background(Color.fitsCard)
+        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
+    }
+}
+
+private struct PickerField<Content: View>: View {
+    let label: String
+    @Binding var selection: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.fitsMuted)
+            Picker(label, selection: $selection) {
+                content()
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.fitsCard)
+        .clipShape(RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
+    }
+}
+
+private struct ReadOnlyMetaField: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.fitsMuted)
+            Text(value.isEmpty ? "None" : value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.fitsText)
+                .lineLimit(1)
+            Spacer()
+        }
+        .padding(10)
+        .background(Color.fitsCard.opacity(0.82))
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
     }

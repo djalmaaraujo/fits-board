@@ -228,19 +228,16 @@ final class AppModel: ObservableObject {
     }
 
     func updateTask(id: String, title: String, description: String, workspaceId: String, projectId: String) {
-        guard let index = board.tasks.firstIndex(where: { $0.id == id }) else { return }
-        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty, !cleanDescription.isEmpty else { return }
-        guard board.workspaces.contains(where: { $0.id == workspaceId }) else { return }
-        guard board.projects.contains(where: { $0.id == projectId && $0.workspaceId == workspaceId }) else { return }
-
-        board.tasks[index].title = cleanTitle
-        board.tasks[index].description = cleanDescription
-        board.tasks[index].workspaceId = workspaceId
-        board.tasks[index].projectId = projectId
-        board.tasks[index].updatedAt = Date()
-        persist()
+        if BoardState.updateTaskDefinition(
+            id: id,
+            title: title,
+            description: description,
+            workspaceId: workspaceId,
+            projectId: projectId,
+            in: &board
+        ) {
+            persist()
+        }
     }
 
     func moveTask(_ task: FitsTask, to column: BoardColumn) {

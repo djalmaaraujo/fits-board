@@ -154,6 +154,8 @@ The backlog editor must make description writing comfortable. Opening a task fro
 
 Backlog task edits must update both structured JSON persistence and the task Markdown file under the workspace/project path. The Markdown artifact is the live written task definition that agents can use as input for later spec and planning stages.
 
+Workspace and project are editable only while a task is in Backlog. Once the task moves to Planning or any later column, the task detail dialog must show workspace and project as read-only metadata. Title and description remain editable because the live task definition can still be clarified, but ownership and project routing should not drift after the task leaves intake.
+
 ### Coding Agent
 
 A coding agent is a locally detected tool that Fits Board may later launch, embed, or orchestrate.
