@@ -75,6 +75,40 @@ public enum BoardState {
     }
 
     @discardableResult
+    public static func removeBacklogTask(id taskId: String, in board: inout BoardData) -> Bool {
+        guard let index = board.tasks.firstIndex(where: { $0.id == taskId }),
+              board.tasks[index].columnId == BoardColumn.intake.id else {
+            return false
+        }
+
+        board.tasks.remove(at: index)
+        return true
+    }
+
+    @discardableResult
+    public static func mergeTaskMetatag(id taskId: String, values: [String: String], in board: inout BoardData) -> Bool {
+        guard let index = board.tasks.firstIndex(where: { $0.id == taskId }) else {
+            return false
+        }
+
+        var didChange = false
+        for (key, value) in values {
+            let cleanKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanKey.isEmpty, !cleanValue.isEmpty else { continue }
+            if board.tasks[index].metatag[cleanKey] != cleanValue {
+                board.tasks[index].metatag[cleanKey] = cleanValue
+                didChange = true
+            }
+        }
+
+        if didChange {
+            board.tasks[index].updatedAt = Date()
+        }
+        return true
+    }
+
+    @discardableResult
     public static func updateTaskDefinition(
         id taskId: String,
         title: String,

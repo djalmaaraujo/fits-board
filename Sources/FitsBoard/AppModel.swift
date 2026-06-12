@@ -1,6 +1,13 @@
 import Foundation
 import FitsCore
 
+struct AppToast: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let detail: String?
+    let systemImage: String
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     enum Sheet: Identifiable {
@@ -29,8 +36,10 @@ final class AppModel: ObservableObject {
     @Published var terminalLines: [String]
     @Published var errorMessage: String?
     @Published var searchQuery: String = ""
+    @Published var toast: AppToast?
 
     private let store: FitsStore
+    private var toastDismissTask: Task<Void, Never>?
 
     init(store: FitsStore = FitsStore()) {
         self.store = store
@@ -155,6 +164,10 @@ final class AppModel: ObservableObject {
             let task = try BoardState.promoteDraftIfComplete(in: &board)
             if let task {
                 selectedTaskId = task.id
+                if persist() {
+                    showToast("Task added to Backlog", detail: task.title, systemImage: "doc.badge.plus")
+                }
+                return
             }
             persist()
         } catch {
@@ -173,7 +186,9 @@ final class AppModel: ObservableObject {
         if board.draftTask.workspaceId.isEmpty {
             board.draftTask.workspaceId = workspace.id
         }
-        persist()
+        if persist() {
+            showToast("Workspace added", detail: workspace.displayName, systemImage: "square.stack.3d.up.badge.plus")
+        }
     }
 
     func addProject(workspaceId: String, name: String, repositories: [FitsRepository]) {
@@ -189,7 +204,9 @@ final class AppModel: ObservableObject {
             board.draftTask.workspaceId = workspaceId
             board.draftTask.projectId = project.id
         }
-        persist()
+        if persist() {
+            showToast("Project added", detail: project.name, systemImage: "folder.badge.plus")
+        }
     }
 
     func updateWorkspace(id: String, name: String, displayName: String, commitEmail: String) {
@@ -202,16 +219,21 @@ final class AppModel: ObservableObject {
         board.workspaces[index].name = cleanName
         board.workspaces[index].displayName = cleanDisplayName.isEmpty ? cleanName : cleanDisplayName
         board.workspaces[index].commitEmail = cleanEmail
-        persist()
+        if persist() {
+            showToast("Workspace saved", detail: board.workspaces[index].displayName, systemImage: "checkmark.circle")
+        }
     }
 
     func removeWorkspace(id: String) {
+        let removedName = board.workspaces.first { $0.id == id }?.displayName ?? "Workspace"
         let selectedTaskWillBeRemoved = selectedTask.map { $0.workspaceId == id } ?? false
         guard BoardState.removeWorkspace(id: id, in: &board) else { return }
         if selectedTaskWillBeRemoved || selectedTask == nil {
             selectedTaskId = board.tasks.first?.id
         }
-        persist()
+        if persist() {
+            showToast("Workspace removed", detail: removedName, systemImage: "trash")
+        }
     }
 
     func addTask(
@@ -231,7 +253,9 @@ final class AppModel: ObservableObject {
             )
             board.tasks.append(task)
             selectedTaskId = task.id
-            persist()
+            if persist() {
+                showToast("Task added to Backlog", detail: task.title, systemImage: "doc.badge.plus")
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -264,11 +288,42 @@ final class AppModel: ObservableObject {
         }
     }
 
+    @discardableResult
+    func deleteBacklogTask(id: String) -> Bool {
+        let removedTitle = board.tasks.first { $0.id == id }?.title ?? "Task"
+        guard BoardState.removeBacklogTask(id: id, in: &board) else {
+            return false
+        }
+        if selectedTaskId == id {
+            selectedTaskId = board.tasks.first?.id
+        }
+        if editingTaskId == id {
+            editingTaskId = nil
+        }
+        if persist() {
+            showToast("Task deleted", detail: removedTitle, systemImage: "trash")
+        }
+        return true
+    }
+
+    func stopTaskPipeline(id: String) {
+        guard board.tasks.contains(where: { $0.id == id }) else { return }
+        showToast("Tarefa parada na pipeline", detail: nil, systemImage: "stop.circle")
+    }
+
+    func mergeTaskMetatag(id: String, values: [String: String]) {
+        if BoardState.mergeTaskMetatag(id: id, values: values, in: &board) {
+            persist()
+        }
+    }
+
     func moveTask(_ task: FitsTask, to column: BoardColumn) {
         guard let index = board.tasks.firstIndex(where: { $0.id == task.id }) else { return }
         board.tasks[index].columnId = column.id
         board.tasks[index].updatedAt = Date()
-        persist()
+        if persist() {
+            showToast("Task moved", detail: "\(task.title) -> \(column.name)", systemImage: "arrow.right.circle")
+        }
     }
 
     func presentTaskSheet() {
@@ -277,6 +332,7 @@ final class AppModel: ObservableObject {
 
     func refreshTools() {
         detectedTools = ToolDetection.detectInstalledTools()
+        showToast("Agents refreshed", detail: "\(detectedTools.filter { $0.status == .installed }.count) installed", systemImage: "arrow.clockwise")
     }
 
     func isToolEnabled(_ toolId: String) -> Bool {
@@ -296,7 +352,9 @@ final class AppModel: ObservableObject {
                 board.settings.preferredAgent = board.settings.enabledToolIds.first
             }
         }
-        persist()
+        if persist() {
+            showToast(enabled ? "Agent enabled" : "Agent disabled", detail: tool.displayName, systemImage: enabled ? "checkmark.circle" : "minus.circle")
+        }
     }
 
     func startAgent(_ tool: DetectedTool) {
@@ -306,13 +364,37 @@ final class AppModel: ObservableObject {
         }
         terminalLines.append("$ \(path)")
         terminalLines.append("Ready to start interactive session through fits-agent-host.")
+        showToast("Agent ready", detail: tool.displayName, systemImage: "terminal")
     }
 
-    private func persist() {
+    func dismissToast() {
+        toastDismissTask?.cancel()
+        toast = nil
+    }
+
+    @discardableResult
+    private func persist() -> Bool {
         do {
             try store.save(board)
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    private func showToast(_ title: String, detail: String? = nil, systemImage: String) {
+        let toast = AppToast(title: title, detail: detail, systemImage: systemImage)
+        self.toast = toast
+        toastDismissTask?.cancel()
+        toastDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2.6))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                if self?.toast?.id == toast.id {
+                    self?.toast = nil
+                }
+            }
         }
     }
 

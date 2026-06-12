@@ -5,13 +5,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$ROOT_DIR/.build/Fits.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
+RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 cd "$ROOT_DIR"
 swift build
 
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$ROOT_DIR/.build/debug/FitsBoard" "$MACOS_DIR/FitsBoard"
+cp "$ROOT_DIR/Resources/FitsBoard.icns" "$RESOURCES_DIR/FitsBoard.icns"
 
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -26,6 +28,8 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <string>FitsBoard</string>
   <key>CFBundleIdentifier</key>
   <string>dev.fits.board</string>
+  <key>CFBundleIconFile</key>
+  <string>FitsBoard</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

@@ -38,12 +38,13 @@ The current app is a SwiftUI macOS application with:
 - A dark native kanban board inspired by the original Fits Board HTML mockup.
 - Offline-first JSON persistence in `~/.fits-board/`.
 - Workspace filters in the top navigation.
-- Task intake in the first kanban column.
+- Task intake through the Backlog creation dialog.
 - Workspaces with `name`, `displayName`, `commitEmail`, color, and project references.
 - Projects with one or more local git repositories.
 - Tasks with title, description, workspace, project, column, creation time, and update time.
 - Preferences for workspace management and local coding-agent activation.
 - Local coding-agent detection for Claude Code, Codex, Gemini CLI, OpenCode, Cursor Agent, Aider, and Goose.
+- Toast feedback for discrete user actions such as creating tasks, adding projects, removing workspaces, moving tasks, and refreshing agents.
 
 ## Core Concepts
 
@@ -98,6 +99,7 @@ A task must always have:
 - workspace
 - project
 - planning type
+- metatag object
 
 Tasks start in the intake/backlog flow and can move through board columns.
 
@@ -110,6 +112,14 @@ The task Markdown path must follow this pattern:
 ```
 
 The Markdown file must be updated whenever Fits Board creates or edits the task fields that belong to the backlog/intake definition. This keeps the task saved as the user writes and gives future agents a durable file to read before planning.
+
+### Task Metatag
+
+Each task has a `metatag` object for execution metadata that agents and later pipeline stages can write and read.
+
+The current MVP stores metatag values as string key/value pairs. Examples include `agent`, `branch`, `environment`, `progress`, `started`, or other execution-specific markers.
+
+Metatag is not part of the user's backlog definition. It can be added or updated across columns while the task moves through the pipeline. The task detail dialog must make the metatag object visible on every task, and task Markdown should include a `## Metatag` section when the object is not empty.
 
 ### Planning Type
 
@@ -171,9 +181,34 @@ Backlog owns the initial definition of the task:
 
 The backlog editor must make description writing comfortable. Opening a task from the board should show a centered task detail dialog with enough space to write and revise the description.
 
+Task creation happens through the New Task dialog. The dialog can be opened from the Backlog column `+` button or with `Command-N`. Columns after Backlog must not show a task-creation `+` button, because new work always enters through intake.
+
+Backlog must not contain a fixed embedded "new intake" form. The board column should show backlog tasks and empty/drop hints only; all creation fields live in the modal dialog.
+
 Backlog task edits must update both structured JSON persistence and the task Markdown file under the workspace/project path. The Markdown artifact is the live written task definition that agents can use as input for later spec and planning stages.
 
 Workspace, project, planning type, and description are editable only while a task is in Backlog. Once the task moves to Planning or any later column, the task detail dialog must show workspace, project, planning type, and description as read-only task definition data. Title remains editable as the concise board label, but the production routing, planning path, and written task definition should not drift after the task leaves intake.
+
+The task detail dialog has a left-side task lifecycle action. While the task is in Backlog, the action is `Delete` and removes the task from the board. After the task leaves Backlog, deleting is no longer available; the same position becomes `Stop`, which represents stopping the task in the production pipeline. In the current MVP, `Stop` only shows a toast saying `Tarefa parada na pipeline`.
+
+### Toast Feedback
+
+Fits Board should acknowledge discrete user actions with a small toast in the bottom-right corner of the main window.
+
+Toast feedback is for completed actions such as adding a task, adding a project, saving or removing a workspace, moving a task, refreshing agents, or toggling an agent. Continuous autosave typing should not produce toasts.
+
+### Modal Skeleton
+
+Fits Board modals use a shared native skeleton so layout does not drift between forms.
+
+Each modal should have:
+
+- a header with title, subtitle, and an `X` close button on the top-right
+- content in the middle
+- a footer with the secondary or destructive action on the left
+- the primary commit action on the right
+
+`Escape` and the header `X` should close the modal. Cancel/close buttons may still appear in the left footer slot when useful, but they must not be grouped beside the save button on the right.
 
 ### Coding Agent
 

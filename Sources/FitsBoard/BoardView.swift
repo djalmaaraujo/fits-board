@@ -19,6 +19,15 @@ struct BoardView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.fitsBackground)
         .foregroundStyle(Color.fitsText)
+        .overlay(alignment: .bottomTrailing) {
+            if let toast = model.toast {
+                ToastView(toast: toast)
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 18)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.22), value: model.toast?.id)
         .sheet(item: $model.activeSheet) { sheet in
             switch sheet {
             case .workspace:
@@ -172,15 +181,13 @@ private struct KanbanColumnView: View {
                 }
                 Spacer()
                 ColumnCountBadge(count: model.filteredTasks(for: column).count)
-                SmallHeaderButton(systemImage: "plus") {
-                    model.activeSheet = .task
+                if column.id == BoardColumn.intake.id {
+                    SmallHeaderButton(systemImage: "plus") {
+                        model.presentTaskSheet()
+                    }
                 }
             }
             .frame(height: 32)
-
-            if column.id == BoardColumn.intake.id {
-                DraftComposerView()
-            }
 
             ScrollView {
                 LazyVStack(spacing: 10) {
@@ -246,7 +253,7 @@ private struct KanbanColumnView: View {
 private struct EmptyColumnHint: View {
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "plus")
+            Image(systemName: "arrow.down.to.line.compact")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(Color.fitsMuted.opacity(0.55))
             Text("drop task")
@@ -263,97 +270,6 @@ private struct EmptyColumnHint: View {
                     .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 5]))
                     .foregroundStyle(Color.fitsLine.opacity(0.85))
             )
-    }
-}
-
-private struct DraftComposerView: View {
-    @EnvironmentObject private var model: AppModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                Image(systemName: "doc.badge.plus")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color.fitsMuted)
-                Text("New intake")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.fitsMuted)
-                    .textCase(.uppercase)
-                Spacer()
-            }
-
-            CompactMenu(
-                label: "Workspace",
-                value: model.workspaceName(model.board.draftTask.workspaceId)
-            ) {
-                ForEach(model.board.workspaces) { workspace in
-                    Button(workspace.displayName) {
-                        model.updateDraft(workspaceId: workspace.id)
-                    }
-                }
-            }
-
-            CompactMenu(
-                label: "Project",
-                value: model.projectName(model.board.draftTask.projectId)
-            ) {
-                ForEach(model.projects(for: model.board.draftTask.workspaceId)) { project in
-                    Button(project.name) {
-                        model.updateDraft(projectId: project.id)
-                    }
-                }
-            }
-
-            CompactMenu(
-                label: "Planning",
-                value: model.board.draftTask.planningType.displayName
-            ) {
-                ForEach(TaskPlanningType.allCases) { planningType in
-                    Button(planningType.displayName) {
-                        model.updateDraft(planningType: planningType)
-                    }
-                }
-            }
-
-            Text(model.board.draftTask.planningType.description)
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundStyle(Color.fitsMuted.opacity(0.84))
-                .lineLimit(3)
-                .fixedSize(horizontal: false, vertical: true)
-
-            TextField("Task title", text: Binding(
-                get: { model.board.draftTask.title },
-                set: { model.updateDraft(title: $0) }
-            ))
-            .font(.system(size: 12, weight: .medium))
-            .textFieldStyle(.plain)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 8)
-            .background(Color.fitsElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
-
-            TextField("Description", text: Binding(
-                get: { model.board.draftTask.description },
-                set: { model.updateDraft(description: $0) }
-            ), axis: .vertical)
-            .lineLimit(2...5)
-            .font(.system(size: 12))
-            .textFieldStyle(.plain)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 8)
-            .background(Color.fitsElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
-
-            FitsButton(title: "Create Intake Task", systemImage: "doc.badge.plus", size: .fullWidth) {
-                model.promoteDraft()
-            }
-        }
-        .padding(9)
-        .background(Color.fitsCard)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
     }
 }
 
@@ -749,6 +665,52 @@ private struct StatPill: View {
     }
 }
 
+private struct ToastView: View {
+    @EnvironmentObject private var model: AppModel
+    let toast: AppToast
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: toast.systemImage)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color.fitsAccent)
+                .frame(width: 28, height: 28)
+                .background(Color.fitsAccent.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(toast.title)
+                    .font(.system(size: 12.5, weight: .bold))
+                    .foregroundStyle(Color.fitsText)
+                    .lineLimit(1)
+                if let detail = toast.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(Color.fitsMuted)
+                        .lineLimit(1)
+                }
+            }
+
+            Button {
+                model.dismissToast()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9.5, weight: .bold))
+                    .foregroundStyle(Color.fitsMuted)
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 10)
+        .frame(width: 310, alignment: .leading)
+        .background(Color.fitsPanel)
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.fitsLine, lineWidth: 1))
+        .shadow(color: .black.opacity(0.32), radius: 18, x: 0, y: 10)
+    }
+}
+
 private struct ToolbarPill: View {
     let title: String
     let systemImage: String
@@ -765,40 +727,6 @@ private struct ToolbarPill: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
         }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct CompactMenu<Content: View>: View {
-    let label: String
-    let value: String
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        Menu {
-            content()
-        } label: {
-            HStack(spacing: 7) {
-                Text(label)
-                    .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Color.fitsMuted)
-                    .frame(width: 58, alignment: .leading)
-                Text(value.isEmpty ? "None" : value)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundStyle(Color.fitsText)
-                    .lineLimit(1)
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.fitsMuted)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(Color.fitsElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.fitsLine, lineWidth: 1))
-        }
-        .menuStyle(.borderlessButton)
         .buttonStyle(.plain)
     }
 }

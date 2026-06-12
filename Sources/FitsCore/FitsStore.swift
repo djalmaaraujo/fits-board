@@ -151,7 +151,18 @@ public struct FitsStore: Sendable {
     }
 
     private static func markdown(for task: FitsTask, workspace: FitsWorkspace, project: FitsProject) -> String {
-        """
+        let metatagSection: String
+        if task.metatag.isEmpty {
+            metatagSection = ""
+        } else {
+            let lines = task.metatag
+                .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+                .map { "- \($0.key): \($0.value)" }
+                .joined(separator: "\n")
+            metatagSection = "\n\n## Metatag\n\n\(lines)"
+        }
+
+        return """
         # \(task.title)
 
         Workspace: \(workspace.displayName)
@@ -162,7 +173,7 @@ public struct FitsStore: Sendable {
 
         ## Description
 
-        \(task.description)
+        \(task.description)\(metatagSection)
         """
     }
 

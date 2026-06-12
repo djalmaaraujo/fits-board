@@ -149,6 +149,7 @@ public struct FitsTask: Codable, Equatable, Identifiable, Sendable {
     public var workspaceId: String
     public var projectId: String
     public var planningType: TaskPlanningType
+    public var metatag: [String: String]
     public var columnId: String
     public var createdAt: Date
     public var updatedAt: Date
@@ -160,6 +161,7 @@ public struct FitsTask: Codable, Equatable, Identifiable, Sendable {
         case workspaceId
         case projectId
         case planningType
+        case metatag
         case columnId
         case createdAt
         case updatedAt
@@ -172,6 +174,7 @@ public struct FitsTask: Codable, Equatable, Identifiable, Sendable {
         workspaceId: String,
         projectId: String,
         planningType: TaskPlanningType = .fast,
+        metatag: [String: String] = [:],
         columnId: String = BoardColumn.intake.id,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -195,6 +198,7 @@ public struct FitsTask: Codable, Equatable, Identifiable, Sendable {
         self.workspaceId = workspaceId
         self.projectId = projectId
         self.planningType = planningType
+        self.metatag = metatag
         self.columnId = columnId
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -208,6 +212,7 @@ public struct FitsTask: Codable, Equatable, Identifiable, Sendable {
         self.workspaceId = try container.decode(String.self, forKey: .workspaceId)
         self.projectId = try container.decode(String.self, forKey: .projectId)
         self.planningType = try container.decodeIfPresent(TaskPlanningType.self, forKey: .planningType) ?? .fast
+        self.metatag = try container.decodeIfPresent([String: String].self, forKey: .metatag) ?? [:]
         self.columnId = try container.decode(String.self, forKey: .columnId)
         self.createdAt = try container.decode(Date.self, forKey: .createdAt)
         self.updatedAt = try container.decode(Date.self, forKey: .updatedAt)

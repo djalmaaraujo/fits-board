@@ -85,6 +85,52 @@ final class BoardStateTests: XCTestCase {
         XCTAssertEqual(board.draftTask.description, "Draft description")
     }
 
+    func testRemoveBacklogTaskDeletesOnlyThatTask() throws {
+        var board = try sampleBoard()
+
+        let removed = BoardState.removeBacklogTask(id: "task-a", in: &board)
+
+        XCTAssertTrue(removed)
+        XCTAssertEqual(board.tasks.map(\.id), ["task-b", "task-c"])
+    }
+
+    func testRemoveBacklogTaskRejectsTaskAfterBacklog() throws {
+        var board = try sampleBoard()
+
+        let removed = BoardState.removeBacklogTask(id: "task-b", in: &board)
+
+        XCTAssertFalse(removed)
+        XCTAssertEqual(board.tasks.map(\.id), ["task-a", "task-b", "task-c"])
+    }
+
+    func testMergeTaskMetatagAddsAndUpdatesValues() throws {
+        var board = try sampleBoard()
+        let originalUpdatedAt = try XCTUnwrap(board.tasks.first { $0.id == "task-b" }).updatedAt
+
+        let updated = BoardState.mergeTaskMetatag(
+            id: "task-b",
+            values: [
+                "agent": "critic-opus",
+                "branch": "agent/i18n-forms"
+            ],
+            in: &board
+        )
+
+        XCTAssertTrue(updated)
+        let task = try XCTUnwrap(board.tasks.first { $0.id == "task-b" })
+        XCTAssertEqual(task.metatag["agent"], "critic-opus")
+        XCTAssertEqual(task.metatag["branch"], "agent/i18n-forms")
+        XCTAssertGreaterThan(task.updatedAt, originalUpdatedAt)
+    }
+
+    func testMergeTaskMetatagRejectsMissingTask() throws {
+        var board = try sampleBoard()
+
+        let updated = BoardState.mergeTaskMetatag(id: "missing", values: ["agent": "critic-opus"], in: &board)
+
+        XCTAssertFalse(updated)
+    }
+
     func testUpdateBacklogTaskCanChangeWorkspaceAndProject() throws {
         var board = try sampleBoard()
 

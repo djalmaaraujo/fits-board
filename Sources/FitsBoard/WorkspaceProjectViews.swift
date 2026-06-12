@@ -10,14 +10,15 @@ struct WorkspaceFormView: View {
     @State private var commitEmail = ""
 
     var body: some View {
-        ModalSurface(title: "New workspace", subtitle: "Identity") {
+        ModalSurface(title: "New workspace", subtitle: "Identity", onClose: dismiss.callAsFunction) {
             VStack(alignment: .leading, spacing: 12) {
                 LabeledField("Name", text: $name, placeholder: "personal")
                 LabeledField("Display Name", text: $displayName, placeholder: "Personal")
                 LabeledField("Commit E-mail", text: $commitEmail, placeholder: "you@example.com")
             }
-        } footer: {
+        } leadingAction: {
             FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+        } primaryAction: {
             FitsButton(title: "Save Workspace", systemImage: "checkmark") {
                 model.addWorkspace(
                     name: name,
@@ -42,7 +43,7 @@ struct PreferencesView: View {
     @State private var workspacePendingRemoval: FitsWorkspace?
 
     var body: some View {
-        ModalSurface(title: "Preferences", subtitle: "Workspaces and local agents") {
+        ModalSurface(title: "Preferences", subtitle: "Workspaces and local agents", onClose: dismiss.callAsFunction) {
             HStack(alignment: .top, spacing: 16) {
                 workspaceSidebar
                 VStack(alignment: .leading, spacing: 16) {
@@ -51,8 +52,9 @@ struct PreferencesView: View {
                     agentsEditor
                 }
             }
-        } footer: {
+        } leadingAction: {
             FitsButton(title: "Close", systemImage: "xmark", variant: .secondary) { dismiss() }
+        } primaryAction: {
             FitsButton(title: "Save Workspace", systemImage: "checkmark") {
                 model.updateWorkspace(
                     id: selectedWorkspaceId,
@@ -227,7 +229,7 @@ struct ProjectFormView: View {
     @State private var repositories: [RepositoryDraft] = []
 
     var body: some View {
-        ModalSurface(title: "New project", subtitle: "Attach one or more git repositories") {
+        ModalSurface(title: "New project", subtitle: "Attach one or more git repositories", onClose: dismiss.callAsFunction) {
             VStack(alignment: .leading, spacing: 14) {
                 Menu {
                     ForEach(model.board.workspaces) { workspace in
@@ -267,8 +269,9 @@ struct ProjectFormView: View {
                     }
                 }
             }
-        } footer: {
+        } leadingAction: {
             FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+        } primaryAction: {
             FitsButton(title: "Save Project", systemImage: "folder.badge.plus") {
                 model.addProject(
                     workspaceId: workspaceId,
@@ -328,7 +331,7 @@ struct TaskFormView: View {
     @State private var description = ""
 
     var body: some View {
-        ModalSurface(title: "New task", subtitle: "Title and description are required") {
+        ModalSurface(title: "New task", subtitle: "Title and description are required", onClose: dismiss.callAsFunction) {
             VStack(alignment: .leading, spacing: 12) {
                 Menu {
                     ForEach(model.board.workspaces) { workspace in
@@ -360,8 +363,9 @@ struct TaskFormView: View {
                 LabeledField("Title", text: $title, placeholder: "Draft the migration spec")
                 LabeledField("Description", text: $description, placeholder: "What needs to be done?", axis: .vertical)
             }
-        } footer: {
+        } leadingAction: {
             FitsButton(title: "Cancel", systemImage: "xmark", variant: .secondary) { dismiss() }
+        } primaryAction: {
             FitsButton(title: "Save Task", systemImage: "checkmark") {
                 model.addTask(
                     title: title,
@@ -405,7 +409,7 @@ struct TaskDetailEditorView: View {
     @State private var didLoadTask = false
 
     var body: some View {
-        ModalSurface(title: "Task detail", subtitle: isBacklogTask ? "Backlog definition" : "Task definition") {
+        ModalSurface(title: "Task detail", subtitle: isBacklogTask ? "Backlog definition" : "Task definition", onClose: closeTaskEditor) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
                     if isBacklogTask {
@@ -460,6 +464,8 @@ struct TaskDetailEditorView: View {
                     }
                 }
 
+                TaskMetatagView(metatag: model.editingTask?.metatag ?? [:])
+
                 LabeledField("Title", text: $title, placeholder: "Add OFAC sanctions list")
 
                 if isBacklogTask {
@@ -482,11 +488,19 @@ struct TaskDetailEditorView: View {
                     ReadOnlyDescriptionField(description: description)
                 }
             }
-        } footer: {
+        } leadingAction: {
+            if isBacklogTask {
+                DestructiveFooterButton(title: "Delete", systemImage: "trash") {
+                    deleteTask()
+                }
+            } else {
+                FitsButton(title: "Stop", systemImage: "stop.circle", variant: .secondary) {
+                    stopPipeline()
+                }
+            }
+        } primaryAction: {
             FitsButton(title: "Done", systemImage: "checkmark") {
-                autosave()
-                model.editingTaskId = nil
-                dismiss()
+                closeTaskEditor()
             }
         }
         .frame(width: 760)
@@ -535,8 +549,107 @@ struct TaskDetailEditorView: View {
         )
     }
 
+    private func deleteTask() {
+        guard let taskId = model.editingTaskId else { return }
+        if model.deleteBacklogTask(id: taskId) {
+            dismiss()
+        }
+    }
+
+    private func stopPipeline() {
+        guard let taskId = model.editingTaskId else { return }
+        model.stopTaskPipeline(id: taskId)
+    }
+
+    private func closeTaskEditor() {
+        autosave()
+        model.editingTaskId = nil
+        dismiss()
+    }
+
     private var isBacklogTask: Bool {
         model.editingTask?.columnId == BoardColumn.intake.id
+    }
+}
+
+private struct TaskMetatagView: View {
+    let metatag: [String: String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 7) {
+                Image(systemName: "tag")
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundStyle(Color.fitsAccent)
+                Text("Metatag")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.fitsMuted)
+                    .textCase(.uppercase)
+                Spacer()
+                Text("\(visiblePairs.count)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.fitsMuted.opacity(0.85))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.fitsElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+
+            Rectangle().fill(Color.fitsLine).frame(height: 1)
+
+            if visiblePairs.isEmpty {
+                Text("No execution metadata yet.")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(Color.fitsMuted.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(visiblePairs.enumerated()), id: \.element.key) { index, pair in
+                        TaskMetatagRow(label: pair.key, value: pair.value)
+                        if index < visiblePairs.count - 1 {
+                            Rectangle().fill(Color.fitsLine.opacity(0.75)).frame(height: 1)
+                        }
+                    }
+                }
+            }
+        }
+        .background(Color.fitsCard.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fitsLine, lineWidth: 1))
+    }
+
+    private var visiblePairs: [(key: String, value: String)] {
+        metatag
+            .map { (key: $0.key, value: $0.value) }
+            .filter { !$0.key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+    }
+}
+
+private struct TaskMetatagRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label.uppercased())
+                .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.fitsMuted)
+                .frame(width: 128, alignment: .leading)
+                .lineLimit(1)
+
+            Text(value.isEmpty ? "-" : value)
+                .font(.system(size: 12.5, weight: .semibold))
+                .foregroundStyle(Color.fitsText)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
     }
 }
 
@@ -649,15 +762,17 @@ private struct EmptyRepositoryHint: View {
     }
 }
 
-private struct ModalSurface<Content: View, Footer: View>: View {
+private struct ModalSurface<Content: View, LeadingAction: View, PrimaryAction: View>: View {
     let title: String
     let subtitle: String
+    let onClose: () -> Void
     @ViewBuilder let content: () -> Content
-    @ViewBuilder let footer: () -> Footer
+    @ViewBuilder let leadingAction: () -> LeadingAction
+    @ViewBuilder let primaryAction: () -> PrimaryAction
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
+            HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(.system(size: 16, weight: .bold))
@@ -668,6 +783,18 @@ private struct ModalSurface<Content: View, Footer: View>: View {
                         .textCase(.uppercase)
                 }
                 Spacer()
+
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.fitsMuted)
+                        .frame(width: 28, height: 28)
+                        .background(Color.fitsElevated)
+                        .clipShape(RoundedRectangle(cornerRadius: 7))
+                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.fitsLine, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
             }
             .padding(16)
 
@@ -678,15 +805,36 @@ private struct ModalSurface<Content: View, Footer: View>: View {
 
             Rectangle().fill(Color.fitsLine).frame(height: 1)
 
-            HStack {
+            HStack(spacing: 10) {
+                leadingAction()
                 Spacer()
-                footer()
+                primaryAction()
             }
             .padding(14)
         }
         .background(Color.fitsBackground)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.fitsLine, lineWidth: 1))
+    }
+}
+
+private struct DestructiveFooterButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.red.opacity(0.92))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.red.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 7))
+                .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.red.opacity(0.28), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 
