@@ -30,109 +30,82 @@ image.lockFocus()
 NSGraphicsContext.current?.imageInterpolation = .high
 
 let canvas = CGRect(origin: .zero, size: size)
-let base = roundedRect(canvas.insetBy(dx: 64, dy: 64), radius: 220)
-let shadow = NSShadow()
-shadow.shadowColor = NSColor.black.withAlphaComponent(0.42)
-shadow.shadowOffset = CGSize(width: 0, height: -28)
-shadow.shadowBlurRadius = 58
-shadow.set()
-color(0x08090b).setFill()
+let base = roundedRect(canvas.insetBy(dx: 86, dy: 86), radius: 190)
+color(0x05080d).setFill()
 base.fill()
-NSShadow().set()
 
-let inner = roundedRect(canvas.insetBy(dx: 92, dy: 92), radius: 184)
-color(0x12151b).setFill()
-inner.fill()
-
-let topGlow = roundedRect(CGRect(x: 126, y: 538, width: 772, height: 338), radius: 140)
-let gradient = NSGradient(colors: [
-    color(0x1b4dff, alpha: 0.42),
-    color(0x24d36a, alpha: 0.14),
-    color(0x12151b, alpha: 0.02)
+let inner = roundedRect(canvas.insetBy(dx: 86, dy: 86), radius: 190)
+let innerGradient = NSGradient(colors: [
+    color(0x0b1824),
+    color(0x05080d)
 ])!
-gradient.draw(in: topGlow, angle: -18)
+innerGradient.draw(in: inner, angle: 90)
 
-let badge = roundedRect(CGRect(x: 142, y: 566, width: 276, height: 276), radius: 76)
-let badgeGradient = NSGradient(colors: [
-    color(0x1475ff),
-    color(0x0f4fe8)
+let fullGlow = roundedRect(canvas.insetBy(dx: 86, dy: 86), radius: 190)
+let fullGlowGradient = NSGradient(colors: [
+    color(0x2f8cff, alpha: 0.11),
+    color(0x0b1824, alpha: 0.04),
+    color(0x05080d, alpha: 0.02)
 ])!
-badgeGradient.draw(in: badge, angle: 45)
-color(0xffffff, alpha: 0.16).setStroke()
-badge.lineWidth = 4
-badge.stroke()
+fullGlowGradient.draw(in: fullGlow, angle: 90)
 
-let f = NSString(string: "F")
-let fAttributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.monospacedSystemFont(ofSize: 178, weight: .heavy),
-    .foregroundColor: NSColor.white,
-    .kern: -5
-]
-let fSize = f.size(withAttributes: fAttributes)
-f.draw(
-    at: CGPoint(x: 142 + (276 - fSize.width) / 2 - 2, y: 566 + (276 - fSize.height) / 2 + 2),
-    withAttributes: fAttributes
-)
+let laneY: CGFloat = 420
+let laneStart: CGFloat = 190
+let stopX: CGFloat = 758
+let stopWidth: CGFloat = 72
+let stopHeight: CGFloat = 112
+let stopY: CGFloat = 364
+let drawingEnd = stopX + stopWidth
 
-let board = roundedRect(CGRect(x: 456, y: 586, width: 420, height: 214), radius: 54)
-color(0x0b0d12, alpha: 0.72).setFill()
-board.fill()
-color(0xffffff, alpha: 0.12).setStroke()
-board.lineWidth = 3
-board.stroke()
-
-let laneY: CGFloat = 692
 let lane = NSBezierPath()
-lane.move(to: CGPoint(x: 508, y: laneY))
-lane.line(to: CGPoint(x: 818, y: laneY))
-color(0x2dd46f).setStroke()
-lane.lineWidth = 18
+lane.move(to: CGPoint(x: laneStart, y: laneY))
+lane.line(to: CGPoint(x: stopX + 22, y: laneY))
+color(0x31d779).setStroke()
+lane.lineWidth = 36
 lane.lineCapStyle = .round
 lane.stroke()
 
-for index in 0..<4 {
-    let x = CGFloat(532 + index * 74)
-    let capsule = roundedRect(CGRect(x: x, y: 724, width: 54, height: 28), radius: 14)
-    color(index < 3 ? 0x2dd46f : 0x2f8cff, alpha: index < 3 ? 0.92 : 0.95).setFill()
-    capsule.fill()
+let nodeY: CGFloat = 586
+let nodes: [(CGFloat, CGFloat, UInt32)] = [
+    (laneStart, 64, 0x31d779),
+    (314, 70, 0x31d779),
+    (438, 78, 0x31d779),
+    (drawingEnd - 92, 92, 0x40a8ff)
+]
+
+for (x, width, hex) in nodes {
+    let node = roundedRect(CGRect(x: x, y: nodeY, width: width, height: 34), radius: 17)
+    color(hex).setFill()
+    node.fill()
 }
 
-for index in 0..<3 {
-    let x = CGFloat(586 + index * 74)
+for x in [326, 456, 586] as [CGFloat] {
     let chevron = NSBezierPath()
-    chevron.move(to: CGPoint(x: x, y: 663))
-    chevron.line(to: CGPoint(x: x + 22, y: 692))
-    chevron.line(to: CGPoint(x: x, y: 721))
-    color(0xffffff, alpha: 0.74).setStroke()
-    chevron.lineWidth = 10
+    chevron.move(to: CGPoint(x: x, y: 364))
+    chevron.line(to: CGPoint(x: x + 46, y: laneY))
+    chevron.line(to: CGPoint(x: x, y: 476))
+    color(0xe7ecef, alpha: 0.86).setStroke()
+    chevron.lineWidth = 26
     chevron.lineJoinStyle = .round
     chevron.lineCapStyle = .round
     chevron.stroke()
 }
 
-let finalStop = roundedRect(CGRect(x: 782, y: 656, width: 46, height: 72), radius: 18)
-color(0xffffff, alpha: 0.90).setFill()
-finalStop.fill()
-
-let title = NSString(string: "FITS")
-let titleAttributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.monospacedSystemFont(ofSize: 88, weight: .heavy),
-    .foregroundColor: color(0xf0f4ff),
-    .kern: 9
-]
-title.draw(at: CGPoint(x: 154, y: 278), withAttributes: titleAttributes)
-
-let subtitle = NSString(string: "BOARD")
-let subtitleAttributes: [NSAttributedString.Key: Any] = [
-    .font: NSFont.monospacedSystemFont(ofSize: 42, weight: .bold),
-    .foregroundColor: color(0x7d8594),
-    .kern: 7
-]
-subtitle.draw(at: CGPoint(x: 164, y: 222), withAttributes: subtitleAttributes)
-
-let underline = roundedRect(CGRect(x: 154, y: 184, width: 300, height: 16), radius: 8)
-color(0x2dd46f).setFill()
-underline.fill()
+let stopShadow = NSShadow()
+stopShadow.shadowColor = NSColor.black.withAlphaComponent(0.30)
+stopShadow.shadowOffset = CGSize(width: 0, height: -7)
+stopShadow.shadowBlurRadius = 14
+stopShadow.set()
+let finalStop = roundedRect(CGRect(x: stopX, y: stopY, width: stopWidth, height: stopHeight), radius: 32)
+let stopGradient = NSGradient(colors: [
+    color(0xffffff, alpha: 0.98),
+    color(0xd8dde0, alpha: 0.96)
+])!
+stopGradient.draw(in: finalStop, angle: 90)
+NSShadow().set()
+color(0xffffff, alpha: 0.18).setStroke()
+finalStop.lineWidth = 3
+finalStop.stroke()
 
 image.unlockFocus()
 
