@@ -1,4 +1,8 @@
-# Fits Board
+<div align="center">
+  <img src="Resources/FitsBoardIcon-1024.png" alt="Fits Board logo" width="160">
+  <h1>Fits Board</h1>
+  <p><strong>Orchestrate local AI agents through a native macOS production pipeline.</strong></p>
+</div>
 
 Fits Board is a native macOS control plane for coordinating AI production work across workspaces, projects, repositories, tasks, and local coding agents.
 
