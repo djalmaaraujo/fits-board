@@ -5,16 +5,26 @@ struct BoardView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            topNavigation
-            Rectangle()
-                .fill(Color.fitsLine)
-                .frame(height: 1)
-            controlPlaneBar
-            Rectangle()
-                .fill(Color.fitsLine)
-                .frame(height: 1)
-            boardScroll
+        ZStack(alignment: .trailing) {
+            VStack(spacing: 0) {
+                topNavigation
+                Rectangle()
+                    .fill(Color.fitsLine)
+                    .frame(height: 1)
+                controlPlaneBar
+                Rectangle()
+                    .fill(Color.fitsLine)
+                    .frame(height: 1)
+                boardScroll
+            }
+
+            if let task = model.inspectorTask {
+                TaskInspectorPanelView(task: task)
+                    .padding(.vertical, 16)
+                    .padding(.trailing, 16)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .zIndex(5)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.fitsBackground)

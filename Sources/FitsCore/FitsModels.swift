@@ -43,10 +43,204 @@ public struct BoardColumn: Codable, Equatable, Identifiable, Sendable {
         .plan,
         .agentQA,
         .review,
-        .draftDelivery,
         .humanReview,
         .done
     ]
+}
+
+public enum PipelineEventLevel: String, Codable, Equatable, Sendable {
+    case info
+    case run
+    case ok
+    case warn
+    case error
+    case system
+
+    public var displayName: String { rawValue.uppercased() }
+}
+
+public enum TaskRunStatus: String, Codable, Equatable, Sendable {
+    case running
+    case waitingForHuman = "waiting_for_human"
+    case completed
+    case stopped
+    case failed
+}
+
+public enum AgentSessionStatus: String, Codable, Equatable, Sendable {
+    case running
+    case paused
+    case stopped
+    case completed
+    case failed
+}
+
+public struct AgentSession: Codable, Equatable, Identifiable, Sendable {
+    public var id: String
+    public var toolId: String
+    public var toolDisplayName: String
+    public var externalSessionId: String?
+    public var resumeCommand: String
+    public var status: AgentSessionStatus
+    public var startedAt: Date
+    public var updatedAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        toolId: String,
+        toolDisplayName: String,
+        externalSessionId: String? = nil,
+        resumeCommand: String,
+        status: AgentSessionStatus = .running,
+        startedAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.toolId = toolId
+        self.toolDisplayName = toolDisplayName
+        self.externalSessionId = externalSessionId
+        self.resumeCommand = resumeCommand
+        self.status = status
+        self.startedAt = startedAt
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct PipelineEvent: Codable, Equatable, Identifiable, Sendable {
+    public var id: String
+    public var taskId: String
+    public var runId: String
+    public var columnId: String
+    public var timestamp: Date
+    public var level: PipelineEventLevel
+    public var tool: String?
+    public var message: String
+
+    public init(
+        id: String = UUID().uuidString,
+        taskId: String,
+        runId: String,
+        columnId: String,
+        timestamp: Date = Date(),
+        level: PipelineEventLevel,
+        tool: String? = nil,
+        message: String
+    ) {
+        self.id = id
+        self.taskId = taskId
+        self.runId = runId
+        self.columnId = columnId
+        self.timestamp = timestamp
+        self.level = level
+        self.tool = tool
+        self.message = message
+    }
+}
+
+public struct PipelineStageContract: Codable, Equatable, Sendable {
+    public var columnId: String
+    public var tools: [String]
+    public var entryMessage: String
+    public var requiredOutput: String
+
+    public init(columnId: String, tools: [String], entryMessage: String, requiredOutput: String) {
+        self.columnId = columnId
+        self.tools = tools
+        self.entryMessage = entryMessage
+        self.requiredOutput = requiredOutput
+    }
+
+    public static func contract(for column: BoardColumn) -> PipelineStageContract {
+        switch column.id {
+        case BoardColumn.intake.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Intake dialog", "Markdown autosave"],
+                entryMessage: "Capture task definition",
+                requiredOutput: "Backlog task markdown"
+            )
+        case BoardColumn.spec.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Codex CLI", "Live spec check"],
+                entryMessage: "Prepare task planning context",
+                requiredOutput: "Planning context and open questions"
+            )
+        case BoardColumn.plan.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Codex CLI", "fits-agent-host", "git worktree"],
+                entryMessage: "Execute requested task work",
+                requiredOutput: "Completed task changes with verification evidence"
+            )
+        case BoardColumn.agentQA.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Swift test", "Go test", "Codex CLI"],
+                entryMessage: "Run implementation quality checks",
+                requiredOutput: "QA report"
+            )
+        case BoardColumn.review.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Live spec check", "Codex review"],
+                entryMessage: "Review outputs against the task and live spec",
+                requiredOutput: "Review findings"
+            )
+        case BoardColumn.humanReview.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Human approval", "Diff reader"],
+                entryMessage: "Wait for human review",
+                requiredOutput: "Human approval decision"
+            )
+        case BoardColumn.done.id:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Local git", "Release checklist"],
+                entryMessage: "Mark work as shipped",
+                requiredOutput: "Shipped task"
+            )
+        default:
+            PipelineStageContract(
+                columnId: column.id,
+                tools: ["Manual"],
+                entryMessage: "Enter \(column.name)",
+                requiredOutput: "Stage output"
+            )
+        }
+    }
+}
+
+public struct TaskRun: Codable, Equatable, Identifiable, Sendable {
+    public var id: String
+    public var taskId: String
+    public var currentColumnId: String
+    public var status: TaskRunStatus
+    public var startedAt: Date
+    public var updatedAt: Date
+    public var events: [PipelineEvent]
+    public var agentSession: AgentSession?
+
+    public init(
+        id: String,
+        taskId: String,
+        currentColumnId: String,
+        status: TaskRunStatus = .running,
+        startedAt: Date = Date(),
+        updatedAt: Date = Date(),
+        events: [PipelineEvent] = [],
+        agentSession: AgentSession? = nil
+    ) {
+        self.id = id
+        self.taskId = taskId
+        self.currentColumnId = currentColumnId
+        self.status = status
+        self.startedAt = startedAt
+        self.updatedAt = updatedAt
+        self.events = events
+        self.agentSession = agentSession
+    }
 }
 
 public struct FitsWorkspace: Codable, Equatable, Identifiable, Sendable {
@@ -116,6 +310,10 @@ public enum TaskPlanningType: String, Codable, CaseIterable, Identifiable, Senda
     case fast
     case llmPlanMode
     case superpowersSkill
+
+    public static var allCases: [TaskPlanningType] {
+        [.fast, .llmPlanMode]
+    }
 
     public var id: String { rawValue }
 

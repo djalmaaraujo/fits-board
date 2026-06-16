@@ -9,11 +9,13 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
 cd "$ROOT_DIR"
 swift build
+(cd "$ROOT_DIR/cmd/fits-agent-host" && go build -o "$ROOT_DIR/.build/fits-agent-host" .)
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$ROOT_DIR/.build/debug/FitsBoard" "$MACOS_DIR/FitsBoard"
 cp "$ROOT_DIR/Resources/FitsBoard.icns" "$RESOURCES_DIR/FitsBoard.icns"
+cp "$ROOT_DIR/.build/fits-agent-host" "$RESOURCES_DIR/fits-agent-host"
 
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
